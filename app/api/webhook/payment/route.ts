@@ -4,7 +4,7 @@ import {
   WebhookProcessingStatus,
 } from "@/app/generated/prisma/client";
 import { broadcast } from "@/lib/events";
-import { prisma } from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 import { z } from "zod";
 
 export const runtime = "nodejs";
@@ -85,6 +85,8 @@ export async function POST(request: Request): Promise<Response> {
 async function processSubscriptionPaidWebhook(
   input: PaymentWebhookInput,
 ): Promise<ProcessedWebhookResult> {
+  const prisma = getPrisma();
+
   return prisma.$transaction(async (tx) => {
     await tx.webhookEvent.create({
       data: {

@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 import {
   subscribe,
   unsubscribe,
@@ -46,6 +46,7 @@ export async function GET(request: Request): Promise<Response> {
       request.signal.addEventListener("abort", cleanup, { once: true });
 
       if (lastEventId !== null) {
+        const prisma = getPrisma();
         const missedEvents = await prisma.dashboardEvent.findMany({
           where: { id: { gt: lastEventId } },
           orderBy: { id: "asc" },

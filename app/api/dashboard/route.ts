@@ -1,8 +1,9 @@
-import { prisma } from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
 export async function GET(): Promise<Response> {
+  const prisma = getPrisma();
   const monthStart = utcMonthStart(new Date());
 
   const providers = await prisma.provider.findMany({

@@ -1,5 +1,5 @@
 import { allocateLead } from "@/lib/allocator";
-import { prisma } from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
@@ -12,6 +12,7 @@ export async function POST(): Promise<Response> {
   }
 
   try {
+    const prisma = getPrisma();
     const service = await prisma.service.findUnique({
       where: { code: TARGET_SERVICE_CODE },
       select: { id: true, name: true },

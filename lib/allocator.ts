@@ -8,7 +8,7 @@ import {
 } from "@/app/generated/prisma/client";
 import { ASSIGNMENTS_PER_LEAD } from "@/lib/constants";
 import { broadcast } from "@/lib/events";
-import { prisma } from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 
 type AllocationRuleRow = {
   providerId: number;
@@ -59,6 +59,7 @@ export class AllocationError extends Error {
 }
 
 export async function allocateLead(input: AllocateLeadInput): Promise<AllocationResult> {
+  const prisma = getPrisma();
   const now = input.now ?? new Date();
   const monthStart = utcMonthStart(now);
 

@@ -1,7 +1,7 @@
 import { Prisma } from "@/app/generated/prisma/client";
 import { allocateLead } from "@/lib/allocator";
 import { SERVICES } from "@/lib/constants";
-import { prisma } from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 import { createLeadSchema, type CreateLeadInput } from "@/lib/validation";
 
 export const runtime = "nodejs";
@@ -44,6 +44,7 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   try {
+    const prisma = getPrisma();
     const service = await prisma.service.findUnique({
       where: { code: serviceCode },
       select: { id: true, code: true, name: true },
