@@ -10,7 +10,7 @@
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
-    "railway:start": "prisma migrate deploy && prisma db seed && next start"
+    "railway:start": "prisma db push && prisma db seed && next start"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",
