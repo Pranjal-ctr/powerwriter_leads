@@ -1,0 +1,162 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ServiceProviderRole {
+  MANDATORY
+  FAIR_POOL
+}
+
+enum AssignmentKind {
+  MANDATORY
+  FAIR_POOL
+}
+
+enum WebhookProcessingStatus {
+  RECEIVED
+  PROCESSING
+  PROCESSED
+  FAILED
+}
+
+enum DashboardEventType {
+  LEAD_CREATED
+  LEAD_ASSIGNED
+  QUOTA_UPDATED
+}
+
+model Service {
+  id               Int                   @id @default(autoincrement())
+  code             String                @unique
+  name             String
+  active           Boolean               @default(true)
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  leads            Lead[]
+  providerRules    ServiceProviderRule[]
+  roundRobinCursor RoundRobinCursor?
+
+  @@map("services")
+}
+
+model Provider {
+  id            Int                    @id @default(autoincrement())
+  code          String                 @unique
+  name          String
+  monthlyQuota  Int                    @default(10)
+  active        Boolean                @default(true)
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+  serviceRules  ServiceProviderRule[]
+  assignments   LeadAssignment[]
+  monthlyUsages ProviderMonthlyUsage[]
+
+  @@map("providers")
+}
+
+model ServiceProviderRule {
+  id         Int                 @id @default(autoincrement())
+  serviceId  Int
+  providerId Int
+  role       ServiceProviderRole
+  position   Int
+  createdAt  DateTime            @default(now())
+  service    Service             @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  provider   Provider            @relation(fields: [providerId], references: [id], onDelete: Restrict)
+
+  @@unique([serviceId, providerId])
+  @@unique([serviceId, role, position])
+  @@index([serviceId, role, position])
+  @@map("service_provider_rules")
+}
+
+model RoundRobinCursor {
+  serviceId    Int      @id
+  nextPosition Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  service      Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@map("round_robin_cursors")
+}
+
+model Lead {
+  id              String           @id @default(uuid()) @db.Uuid
+  phone           String
+  serviceId       Int
+  source          String?
+  rawPayload      Json?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  service         Service          @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  assignments     LeadAssignment[]
+  dashboardEvents DashboardEvent[]
+
+  @@unique([phone, serviceId])
+  @@index([serviceId, createdAt])
+  @@map("leads")
+}
+
+model LeadAssignment {
+  id         String         @id @default(uuid()) @db.Uuid
+  leadId     String         @db.Uuid
+  providerId Int
+  slot       Int
+  kind       AssignmentKind
+  assignedAt DateTime       @default(now())
+  lead       Lead           @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  provider   Provider       @relation(fields: [providerId], references: [id], onDelete: Restrict)
+
+  @@unique([leadId, providerId])
+  @@unique([leadId, slot])
+  @@index([providerId, assignedAt])
+  @@map("lead_assignments")
+}
+
+model ProviderMonthlyUsage {
+  id            Int      @id @default(autoincrement())
+  providerId    Int
+  monthStart    DateTime @db.Date
+  assignedCount Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  provider      Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, monthStart])
+  @@index([monthStart, assignedCount])
+  @@map("provider_monthly_usages")
+}
+
+model WebhookEvent {
+  id              String                  @id @default(uuid()) @db.Uuid
+  source          String
+  externalEventId String
+  eventType       String
+  payload         Json
+  status          WebhookProcessingStatus @default(RECEIVED)
+  receivedAt      DateTime                @default(now())
+  processedAt     DateTime?
+  lastError       String?
+
+  @@unique([source, externalEventId])
+  @@index([status, receivedAt])
+  @@map("webhook_events")
+}
+
+model DashboardEvent {
+  id        BigInt             @id @default(autoincrement())
+  type      DashboardEventType
+  leadId    String?            @db.Uuid
+  payload   Json
+  createdAt DateTime           @default(now())
+  lead      Lead?              @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([leadId, createdAt])
+  @@map("dashboard_events")
+}
